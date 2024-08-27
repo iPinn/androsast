@@ -41,7 +41,7 @@ jobs:
         run: |
           semgrep scan --config ./rules \
             --output semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif \
-            --sarif decompiled_apk
+            --json decompiled_apk
           echo "SARIF_FILE=semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif" >> $GITHUB_OUTPUT
 
       - name: Parse SARIF file
