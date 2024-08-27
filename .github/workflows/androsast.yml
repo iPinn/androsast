@@ -29,7 +29,7 @@ jobs:
       - name: Find APK file
         id: find_apk
         run: |
-          APK_FILE=$(find . -name "*.apk" | head -n 1)
+          APK_FILE=$(ls -t | grep -i ".apk" | head -n 1)
           echo "APK_FILE=${APK_FILE}" >> $GITHUB_OUTPUT
           echo "APK_NAME=$(basename ${APK_FILE} .apk)" >> $GITHUB_OUTPUT
 
@@ -50,6 +50,13 @@ jobs:
           TOTAL_ISSUES=$(jq '.runs[].results | length' ${{ steps.semgrep.outputs.SARIF_FILE }})
           echo "TOTAL_ISSUES=${TOTAL_ISSUES}" >> $GITHUB_OUTPUT
 
+      - name: Upload SARIF file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: ${{ steps.semgrep.outputs.SARIF_FILE }}
+          retention-days: 1
+
       - name: Send results to Slack
         uses: 8398a7/action-slack@v3
         with:
@@ -58,7 +65,8 @@ jobs:
             APK SAST Scan Results for ${{ steps.find_apk.outputs.APK_NAME }}:
             Total issues found: ${{ steps.parse_sarif.outputs.TOTAL_ISSUES }}
             
-            For detailed results, please check the SARIF file: ${{ steps.semgrep.outputs.SARIF_FILE }}
+            The SARIF file has been uploaded as an artifact to this workflow run.
+            You can download it from the Actions tab in the GitHub repository.
           fields: repo,message,commit,author,action,eventName,ref,workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
