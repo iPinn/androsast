@@ -1,9 +1,9 @@
-name: APK SAST Scan
+name: Github Annot SAST
 
 on:
   push:
-    paths:
-      - '**.apk'
+      tags:
+      - ‘commit/*’
 
 jobs:
   sast_scan:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Parse SARIF file
         if: always()
-        uses: Ayrx/sarif_to_github_annotations@v0.2.2
+        uses: Ayrx/sarif_to_github_annotations@master
         with:
           sarif_file: '${{ steps.semgrep.outputs.SARIF_FILE }})'
       
