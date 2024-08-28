@@ -1,9 +1,6 @@
 name: Github Annot SAST
 
-on:
-  push:
-      tags:
-      - ‘commit/*’
+on: [push]
 
 jobs:
   sast_scan:
