@@ -1,9 +1,11 @@
 name: APK SAST Scan
 
-on:
-  push:
-    paths:
-      - '**.apk'
+# on:
+#   push:
+#     paths:
+#       - '**.apk'
+
+on: [push]
 
 jobs:
   sast_scan:
@@ -39,7 +41,7 @@ jobs:
       - name: Run Semgrep scan with custom rules
         id: semgrep
         run: |
-          semgrep scan --config ./rules \
+          semgrep scan --config "p/mobsfscan" --config "p/secrets"  \
             --output semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif \
             --sarif decompiled_apk
           echo "SARIF_FILE=semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif" >> $GITHUB_OUTPUT
