@@ -1,0 +1,79 @@
+name: APK SAST Scan
+
+on:
+  push:
+    paths:
+      - '**.apk'
+
+jobs:
+  sast_scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Install apktool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apktool
+
+      - name: Install semgrep
+        run: pip install semgrep
+
+      - name: Find APK file
+        id: find_apk
+        run: |
+          APK_FILE=$(ls -t | grep -i ".apk" | head -n 1)
+          echo "APK_FILE=${APK_FILE}" >> $GITHUB_OUTPUT
+          echo "APK_NAME=$(basename ${APK_FILE} .apk)" >> $GITHUB_OUTPUT
+
+      - name: Decompile APK
+        run: apktool d ${{ steps.find_apk.outputs.APK_FILE }} -o decompiled_apk
+
+      - name: Run Semgrep scan with custom rules
+        id: semgrep
+        run: |
+          semgrep scan --config ./rules \
+            --output semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif \
+            --sarif decompiled_apk
+          echo "SARIF_FILE=semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif" >> $GITHUB_OUTPUT
+
+      - name: Parse SARIF file
+        if: always()
+        uses: Ayrx/sarif_to_github_annotations@v0.2.2
+        with:
+          sarif_file: '${{ steps.semgrep.outputs.SARIF_FILE }})'
+      
+      - name: Generate GitHub Annotations Summary
+        id: annotations_summary
+        run: |
+          ANNOTATIONS=$(cat $GITHUB_STEP_SUMMARY)
+          echo "ANNOTATIONS<<EOF" >> $GITHUB_OUTPUT
+          echo "$ANNOTATIONS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Upload SARIF file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: ${{ steps.semgrep.outputs.SARIF_FILE }}
+          retention-days: 1
+
+      - name: Send results to Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Scan Results for ${{ steps.find_apk.outputs.APK_NAME }}:
+            GitHub Annotations Summary:
+            ${{ steps.annotations_summary.outputs.ANNOTATIONS }}
+            
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

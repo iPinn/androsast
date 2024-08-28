@@ -68,16 +68,16 @@ jobs:
           path: ${{ steps.semgrep.outputs.SARIF_FILE }}
           retention-days: 1
 
-      - name: Send results to Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            Scan Results for ${{ steps.find_apk.outputs.APK_NAME }}:
-            Total issues found: ${{ steps.parse_sarif.outputs.TOTAL_ISSUES }}
+      # - name: Send results to Slack
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: |
+      #       Scan Results for ${{ steps.find_apk.outputs.APK_NAME }}:
+      #       Total issues found: ${{ steps.parse_sarif.outputs.TOTAL_ISSUES }}
             
-            Detailed Findings:
-            ${{ steps.parse_sarif.outputs.FINDINGS }}
+      #       Detailed Findings:
+      #       ${{ steps.parse_sarif.outputs.FINDINGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
