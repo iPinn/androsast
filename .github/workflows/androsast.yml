@@ -40,25 +40,26 @@ jobs:
         id: semgrep
         run: |
           semgrep scan --config ./rules \
-            --output semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).txt \
-            --text decompiled_apk
-          echo "SARIF_FILE=semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).txt" >> $GITHUB_OUTPUT
+            --output semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif \
+            --sarif decompiled_apk
+          echo "SARIF_FILE=semgrep_${{ steps.find_apk.outputs.APK_NAME }}_$(date +%Y%m%d).sarif" >> $GITHUB_OUTPUT
 
-      # - name: Parse SARIF file
-      #   id: parse_sarif
-      #   run: |
-      #     TOTAL_ISSUES=$(jq '.runs[].results | length' ${{ steps.semgrep.outputs.SARIF_FILE }})
-      #     echo "TOTAL_ISSUES=${TOTAL_ISSUES}" >> $GITHUB_OUTPUT
+      - name: Parse SARIF file
+        id: parse_sarif
+        run: |
+          TOTAL_ISSUES=$(jq '.runs[].results | length' ${{ steps.semgrep.outputs.SARIF_FILE }})
+          echo "TOTAL_ISSUES=${TOTAL_ISSUES}" >> $GITHUB_OUTPUT
           
-      #     FINDINGS=$(jq -r '.runs[].results[] | {
-      #       ruleId: .ruleId,
-      #       description: .message.text,
-      #       location: .locations[0].physicalLocation.artifactLocation.uri,
-      #       level: .level
-      #     } | "RuleID: \(.ruleId)\nDescription: \(.description)\nLocation: \(.location)\nLevel: \(.level)\n---"' ${{ steps.semgrep.outputs.SARIF_FILE }})
-      #     echo "FINDINGS<<EOF" >> $GITHUB_OUTPUT
-      #     echo "$FINDINGS" >> $GITHUB_OUTPUT
-      #     echo "EOF" >> $GITHUB_OUTPUT
+          FINDINGS=$(jq -r '.runs[].results[] | {
+            ruleId: .ruleId,
+            description: .message.text,
+            location: .locations[0].physicalLocation.artifactLocation.uri,
+            level: (.rule.defaultConfiguration.level // "unknown"),
+            snippet: (.locations[0].physicalLocation.region.snippet.text // "No snippet available")
+          } | "RuleID: \(.ruleId)\nDescription: \(.description)\nLocation: \(.location)\nLevel: \(.level)\nSnippet:\n```\n\(.snippet)\n```\n---"' ${{ steps.semgrep.outputs.SARIF_FILE }})
+          echo "FINDINGS<<EOF" >> $GITHUB_OUTPUT
+          echo "$FINDINGS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           
       - name: Upload SARIF file as artifact
         uses: actions/upload-artifact@v4
@@ -73,10 +74,10 @@ jobs:
           status: ${{ job.status }}
           text: |
             Scan Results for ${{ steps.find_apk.outputs.APK_NAME }}:
-            # Total issues found: ${{ steps.parse_sarif.outputs.TOTAL_ISSUES }}
+            Total issues found: ${{ steps.parse_sarif.outputs.TOTAL_ISSUES }}
             
-            # Detailed Findings:
-            # ${{ steps.parse_sarif.outputs.FINDINGS }}
+            Detailed Findings:
+            ${{ steps.parse_sarif.outputs.FINDINGS }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
