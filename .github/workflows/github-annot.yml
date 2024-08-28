@@ -45,7 +45,7 @@ jobs:
         if: always()
         uses: Ayrx/sarif_to_github_annotations@master
         with:
-          sarif_file: '${{ steps.semgrep.outputs.SARIF_FILE }})'
+          sarif_file: '${{ steps.semgrep.outputs.SARIF_FILE }}'
       
       - name: Generate GitHub Annotations Summary
         id: annotations_summary
