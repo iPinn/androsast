@@ -1,6 +1,9 @@
 name: Github Annot SAST
 
-on: [push]
+on:
+  push:
+    paths:
+      - '**.apk'
 
 jobs:
   sast_scan:
